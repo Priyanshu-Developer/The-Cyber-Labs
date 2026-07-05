@@ -246,6 +246,12 @@ Run them only in isolated local environments or authorized lab setups. Never att
 
 ---
 
+# 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
 # ⭐ Support the Project
 
 If Cyber Labs helps you learn cybersecurity:
