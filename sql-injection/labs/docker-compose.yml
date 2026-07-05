@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cyberlabs-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cyberlabs}
+      POSTGRES_USER: ${POSTGRES_USER:-cyberlabs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cyberlabs_secret_2024}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./db/lab01-schema.sql:/docker-entrypoint-initdb.d/02-lab01-schema.sql:ro
+      - ./db/lab01-seed.sql:/docker-entrypoint-initdb.d/03-lab01-seed.sql:ro
+      - ./db/lab02-schema.sql:/docker-entrypoint-initdb.d/04-lab02-schema.sql:ro
+      - ./db/lab02-seed.sql:/docker-entrypoint-initdb.d/05-lab02-seed.sql:ro
+      - ./db/lab03-schema.sql:/docker-entrypoint-initdb.d/06-lab03-schema.sql:ro
+      - ./db/lab03-seed.sql:/docker-entrypoint-initdb.d/07-lab03-seed.sql:ro
+      - ./db/lab04-schema.sql:/docker-entrypoint-initdb.d/08-lab04-schema.sql:ro
+      - ./db/lab04-seed.sql:/docker-entrypoint-initdb.d/09-lab04-seed.sql:ro
+      - ./db/lab05-schema.sql:/docker-entrypoint-initdb.d/10-lab05-schema.sql:ro
+      - ./db/lab05-seed.sql:/docker-entrypoint-initdb.d/11-lab05-seed.sql:ro
+      - ./db/lab06-schema.sql:/docker-entrypoint-initdb.d/12-lab06-schema.sql:ro
+      - ./db/lab06-seed.sql:/docker-entrypoint-initdb.d/13-lab06-seed.sql:ro
+      - ./db/lab07-schema.sql:/docker-entrypoint-initdb.d/14-lab07-schema.sql:ro
+      - ./db/lab08-schema.sql:/docker-entrypoint-initdb.d/15-lab08-schema.sql:ro
+      - ./db/lab09-schema.sql:/docker-entrypoint-initdb.d/16-lab09-schema.sql:ro
+      - ./db/lab10-schema.sql:/docker-entrypoint-initdb.d/17-lab10-schema.sql:ro
+      - ./db/lab11-schema.sql:/docker-entrypoint-initdb.d/18-lab11-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cyberlabs} -d ${POSTGRES_DB:-cyberlabs}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - cyberlabs-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cyberlabs-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cyberlabs}:${POSTGRES_PASSWORD:-cyberlabs_secret_2024}@postgres:5432/${POSTGRES_DB:-cyberlabs}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-cyberlabs}
+      POSTGRES_USER: ${POSTGRES_USER:-cyberlabs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cyberlabs_secret_2024}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const http = require('http'); const req = http.request({hostname:'localhost',port:3000,path:'/api/health',timeout:2000}, res => { process.exit(res.statusCode === 200 ? 0 : 1) }); req.on('error', () => process.exit(1)); req.end();\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - cyberlabs-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  cyberlabs-net:
+    driver: bridge
